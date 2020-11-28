@@ -175,7 +175,8 @@ const ControlLightBulb_Handler =  {
         //   SLOT: LightState 
         if (slotValues.LightState.heardAs) {
             slotStatus += ' slot LightState was heard as ' + slotValues.LightState.heardAs + '. ';
-            if(slotValues.LightState.heardAs === "on")
+            //la parte del codigo de prender y apagar
+            if(slotValues.LightState.resolved === "enciende")
             {
                 var device = awsIot.device({
                     keyPath: '192feef6c0-private.pem.key',
@@ -220,7 +221,7 @@ const ControlLightBulb_Handler =  {
 
                 say = say +' se prendera';
             }
-            if(slotValues.LightState.heardAs === "off")
+            if(slotValues.LightState.resolved === "apaga")
             {
                 var device = awsIot.device({
                     keyPath: '192feef6c0-private.pem.key',
@@ -265,6 +266,8 @@ const ControlLightBulb_Handler =  {
 
                 say = say +' se apagara';
             }
+
+
         } else {
             slotStatus += 'slot LightState is empty. ';
         }
@@ -366,7 +369,7 @@ const getValue = function(){
     });
   
     return mqttpromise2;
-}
+};
 
 
 const  LaunchRequest_Handler =  {
@@ -895,8 +898,12 @@ const model = {
             }
           ],
           "samples": [
-            "Control turn {LightState} the ligth",
-            "Control turn the ligth {LightState} ",
+            "porfavor {LightState} la luz ",
+            "las luces se {LightState}",
+            "mis luces deben {LightState}",
+            "la luz debe {LightState}",
+            "Control  {LightState} la  luz",
+            "{LightState}  las luces",
             "Control {LightState} "
           ]
         },
@@ -904,11 +911,13 @@ const model = {
             "name": "GetTemperature",
             "slots": [],
             "samples": [
-              "today's weather is suitable",
-              "how is the morning today",
-              "how is the weather today",
-              "how is the day today",
-              "what is the temperature now"
+                "dime el clima de hoy",
+                "esta mañana esta siendo  calor o frio",
+                "el clima de hoy es adecuado",
+                "como esta la mañana ahora",
+                "como esta la mañana hoy",
+                "como esta el dia hoy",
+                "cual es la temperatura ahora"
             ]
         },
         {
@@ -920,14 +929,23 @@ const model = {
           "name": "LIGHT_STATE",
           "values": [
             {
-              "name": {
-                "value": "off"
-              }
+                "name": {
+                    "value": "apaga",
+                    "synonyms": [
+                      "apagarse",
+                      "apagar"
+                    ]
+                }
             },
             {
-              "name": {
-                "value": "on"
-              }
+                "name": {
+                    "value": "enciende",
+                    "synonyms": [
+                      "prenderse",
+                      "prende",
+                      "prender"
+                    ]
+                }
             }
           ]
         }
