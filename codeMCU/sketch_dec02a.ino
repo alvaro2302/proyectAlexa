@@ -5,13 +5,16 @@
 
 #define LED_BUILTIN 2
 
-
 int Sensor = 23;
 unsigned int temperature;
 DHT dht (Sensor, DHT11);
 
-const char* SSID = "Puente COMTECO-N3317583";
-const char* PASSWORD = "6fa6c9c13c09";
+//char SSID[] = "COMTECO-N3317583";
+//char PASSWORD[] = "TRQLD14550";
+
+String networks[10];
+int numberNetwork;
+
 const char* AWS_HOST = "adhy50rq4z8k7-ats.iot.us-east-2.amazonaws.com";
 const int AWS_PORT = 8883;
 
@@ -99,69 +102,62 @@ WiFiClientSecure wifiClient;
 PubSubClient mqttClient(wifiClient);
 
 void ledOn() {
-  digitalWrite(LED_BUILTIN, HIGH);
+    digitalWrite(LED_BUILTIN, HIGH);
 }
 
 void ledOff() {
-  digitalWrite(LED_BUILTIN, LOW);
+    digitalWrite(LED_BUILTIN, LOW);
 }
 
 StaticJsonDocument<JSON_OBJECT_SIZE(1)> inputDoc;
 
 // PubSubClient callback function
-void callback(const char* topic, byte* payload, unsigned int length) {
-  String message;
-  for (int i = 0; i < length; i++) {
-    message += String((char) payload[i]);
-  }
-  if (String(topic) == IN_TOPIC) {
-    Serial.println("Message from topic " + String(IN_TOPIC) + ":" + message);
-
-    DeserializationError err = deserializeJson(inputDoc, payload);
-    if (!err) {
-      String action = String(inputDoc["action"].as<char*>());
-      if (action == "LedOn") ledOn();
-      else if (action == "LedOff") ledOff();
-      else Serial.println("Unsupported action received: " + action);
+void callback(const char* topic, byte* payload, unsigned int length) 
+{
+    String message;
+    for (int i = 0; i < length; i++) {
+        message += String((char) payload[i]);
     }
-  }
+    if (String(topic) == IN_TOPIC) {
+        Serial.println("Message from topic " + String(IN_TOPIC) + ":" + message);
+    
+        DeserializationError err = deserializeJson(inputDoc, payload);
+        if (!err) {
+            String action = String(inputDoc["action"].as<char*>());
+            if (action == "LedOn") ledOn();
+            else if (action == "LedOff") ledOff();
+            else Serial.println("Unsupported action received: " + action);
+        }
+    }
 }
 
-boolean mqttClientConnect() {
-  Serial.println("Connecting to AWS IoT...");
-  if (mqttClient.connect(CLIENT_ID)) {
-    Serial.println("Connected to " + String(AWS_HOST));
-
-    mqttClient.subscribe(IN_TOPIC);
-
-    Serial.println("Subscribed to " + String(IN_TOPIC));
-  } else {
-    Serial.println("Couldn't connect to AWS IoT.");
-  }
-  return mqttClient.connected();
+boolean mqttClientConnect() 
+{
+    Serial.println("Connecting to AWS IoT...");
+    if (mqttClient.connect(CLIENT_ID)) 
+    {
+        Serial.println("Connected to " + String(AWS_HOST));
+    
+        mqttClient.subscribe(IN_TOPIC);
+    
+        Serial.println("Subscribed to " + String(IN_TOPIC));
+    } else {
+        Serial.println("Couldn't connect to AWS IoT.");
+    }
+    return mqttClient.connected();
 }
 
-void setup() {
-  
-  dht.begin();
-   
-  pinMode(LED_BUILTIN, OUTPUT);
-  Serial.begin(115200);
-  Serial.println("Connecting to WiFi...");
-
-  WiFi.begin(SSID, PASSWORD);
-  if (WiFi.waitForConnectResult() != WL_CONNECTED) {
-    Serial.println("Couldn't connect to WiFi.");
-    while(1) delay(100);
-  }
-  Serial.println("Connected to " + String(SSID));
-
-  wifiClient.setCACert(AMAZON_ROOT_CA1);
-  wifiClient.setCertificate(CERTIFICATE);
-  wifiClient.setPrivateKey(PRIVATE_KEY);
-
-  mqttClient.setServer(AWS_HOST, AWS_PORT);
-  mqttClient.setCallback(callback);
+void setup() 
+{
+    dht.begin();
+    pinMode(LED_BUILTIN, OUTPUT);
+    Serial.begin(115200);
+    
+    Serial.println("scan start");
+    int n = WiFi.scanNetworks();//numero de redes encontradas
+    
+    scanNetwork(n);
+    Serial.print("Select Network: ");
 }
 
 unsigned long previousConnectMillis = 0;
@@ -173,37 +169,109 @@ StaticJsonDocument<JSON_OBJECT_SIZE(1)> outputDoc;
 char outputBuffer[128];
 
 
-void publishMessage(unsigned char value) {
-  outputDoc["Temperature"] = value;
+void publishMessage(unsigned char value) 
+{
+  outputDoc["Temperatura"] = value;
   serializeJson(outputDoc, outputBuffer);
   mqttClient.publish(OUT_TOPIC, outputBuffer);
 }
 
+void loop() 
+{
+     //conect();
+     String str;
+     String password;
+   
+     if (Serial.available() > 0)
+     {
+          str = Serial.readStringUntil('\n');
+          numberNetwork = str.toInt();
+          Serial.println("Network: " + networks[numberNetwork]);
 
-void loop() {
-   temperature = dht.readTemperature();
-   delay(2000);
-                          
-  unsigned long now = millis();
-  if (!mqttClient.connected()) {
-    
-    // Connect to MQTT broker
-    
-    if (now - previousConnectMillis >= 5000) {
-      previousConnectMillis = now;
-      if (mqttClientConnect()) {
-        previousConnectMillis = 0;
-      } else delay(1000);
-    }
-  } else {
-    // This should be called regularly to allow the client to process incoming messages and maintain its connection to the server
-    mqttClient.loop();
-    delay(100);
+          int ssidlen = networks[numberNetwork].length() + 1;
+          char ssid[ssidlen];
+          networks[numberNetwork].toCharArray(ssid, ssidlen);
 
-    if (now - previousPublishMillis >= 1000) {
-    previousPublishMillis = now;
-    // Publish message
-    publishMessage(temperature);
+          char* SSID = ssid;
+          //char* SSID = "COMTECO-N3317583";
+          
+          delay(10000);
+          
+          Serial.print("Enter password: ");
+          password = Serial.readStringUntil('\n');
+
+          int passlen = password.length() + 1;
+          char pass[passlen];
+          password.toCharArray(pass, passlen);
+          
+          //char* PASSWORD = "TRQLD14550";
+          
+          char* PASSWORD = pass;
+          
+          delay(10000);
+
+          WiFi.begin(SSID, PASSWORD);
+          if (WiFi.waitForConnectResult() != WL_CONNECTED) {
+                Serial.println("Couldn't connect to WiFi.");
+                while(1) delay(100);
+          }
+          Serial.println("Connected to " + String(SSID));
+          
+          wifiClient.setCACert(AMAZON_ROOT_CA1);
+          wifiClient.setCertificate(CERTIFICATE);
+          wifiClient.setPrivateKey(PRIVATE_KEY);
+          
+          mqttClient.setServer(AWS_HOST, AWS_PORT);
+          mqttClient.setCallback(callback);
+           
+          temperature = dht.readTemperature();
+          delay(2000);
+     }
+    
+    
+    
+  
+    // Wait a bit before scanning again
+    delay(5000);//esperar 5 segundos para iniciar otro escaneo de redes
+                      
+    unsigned long now = millis();
+    if (!mqttClient.connected()) 
+    {  
+        // Connect to MQTT broker
+        if (now - previousConnectMillis >= 2000) {
+            previousConnectMillis = now;
+            if (mqttClientConnect()) {
+              previousConnectMillis = 0;
+            } else delay(1000);
+        }
+    } else {
+        // This should be called regularly to allow the client to process incoming messages and maintain its connection to the server
+        mqttClient.loop();
+        delay(100);
+    
+        if (now - previousPublishMillis >= 100) {
+        previousPublishMillis = now;
+        // Publish message
+        publishMessage(temperature);
+        }
     }
-  }
+}
+
+void scanNetwork(int n)
+{
+    if (n == 0)// si n es igual a cero, es porque no se encontró ninguna red cercana
+        Serial.println("no networks found");
+    else
+    {
+        Serial.print(n);// imprimir en el puerto serial el # de redes encontradas
+        Serial.println(" networks found");
+        for (int i = 0; i < n; ++i)// en este for loop, se imprime el nombre y la potencia de señal 
+        {
+            // SSID: Nombre de la red;
+            Serial.print(i+1);//iniciamos en la red # 1...
+            Serial.print(": ");
+            Serial.println(WiFi.SSID(i)); //Imprime el nombre de la red
+            networks[i] = WiFi.SSID(i);
+        }
+    }
 }
