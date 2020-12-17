@@ -4,7 +4,7 @@
 #include <DHT.h>
 
 #define LED_BUILTIN 2
-
+//6fa6c9c13c09
 int Sensor = 23;
 unsigned int temperature;
 DHT dht (Sensor, DHT11);
@@ -178,14 +178,17 @@ void publishMessage(unsigned char value)
 
 void loop() 
 {
-     //conect();
+
+     //select the desired network and connect to that network by entering the password
      String str;
      String password;
    
      if (Serial.available() > 0)
      {
           str = Serial.readStringUntil('\n');
+          delay(10000);
           numberNetwork = str.toInt();
+          numberNetwork = numberNetwork - 1;
           Serial.println("Network: " + networks[numberNetwork]);
 
           int ssidlen = networks[numberNetwork].length() + 1;
@@ -193,23 +196,17 @@ void loop()
           networks[numberNetwork].toCharArray(ssid, ssidlen);
 
           char* SSID = ssid;
-          //char* SSID = "COMTECO-N3317583";
-          
-          delay(10000);
-          
+                
           Serial.print("Enter password: ");
+          delay(10000);
           password = Serial.readStringUntil('\n');
 
           int passlen = password.length() + 1;
           char pass[passlen];
           password.toCharArray(pass, passlen);
           
-          //char* PASSWORD = "TRQLD14550";
-          
           char* PASSWORD = pass;
           
-          delay(10000);
-
           WiFi.begin(SSID, PASSWORD);
           if (WiFi.waitForConnectResult() != WL_CONNECTED) {
                 Serial.println("Couldn't connect to WiFi.");
@@ -232,7 +229,8 @@ void loop()
     
   
     // Wait a bit before scanning again
-    delay(5000);//esperar 5 segundos para iniciar otro escaneo de redes
+    delay(5000);//wait 5 seconds to start another network scan
+
                       
     unsigned long now = millis();
     if (!mqttClient.connected()) 
@@ -257,20 +255,21 @@ void loop()
     }
 }
 
+//function scans nearby wifi networks
+
 void scanNetwork(int n)
 {
-    if (n == 0)// si n es igual a cero, es porque no se encontró ninguna red cercana
+    if (n == 0)//  if n is equal to zero, it is because no nearby network was found
         Serial.println("no networks found");
     else
     {
-        Serial.print(n);// imprimir en el puerto serial el # de redes encontradas
+        Serial.print(n);// print the # of networks found on the serial port
         Serial.println(" networks found");
-        for (int i = 0; i < n; ++i)// en este for loop, se imprime el nombre y la potencia de señal 
+        for (int i = 0; i < n; ++i)// in this for loop, the name and signal strength are printed
         {
-            // SSID: Nombre de la red;
-            Serial.print(i+1);//iniciamos en la red # 1...
+            Serial.print(i+1);//we started on network # 1 ...
             Serial.print(": ");
-            Serial.println(WiFi.SSID(i)); //Imprime el nombre de la red
+            Serial.println(WiFi.SSID(i)); //print the Network's name
             networks[i] = WiFi.SSID(i);
         }
     }
